@@ -9,19 +9,25 @@
 #define CHALLENGE_LEN 8 // 质询长度
 #define RESPONSE_LEN 8 // 响应长度
 
-// 模拟SRAM PUF输出
-unsigned char sram_puf_output[RESPONSE_LEN];
-
-// 模拟响应提取器
-unsigned char response_extractor(unsigned char *input, int len)
+// 模拟SRAM PUF输出，使用C语言编写
+unsigned char sram_puf_output(unsigned char *challenge, int len)
 {
-    // 假设使用异或运算作为模糊提取器
-    unsigned char output = 0;
+    // 定义SRAM单元的初始状态，假设为随机值
+    unsigned char sram_cell[RESPONSE_LEN];
+    for (int i = 0; i < RESPONSE_LEN; i++)
+    {
+        sram_cell[i] = rand() % 256;
+    }
+
+    // 定义响应变量，初始为零
+    unsigned char response = 0;
+
+    // 对每个SRAM单元进行异或运算，并将结果转换为一个字节的输出
     for (int i = 0; i < len; i++)
     {
-        output ^= input[i];
+        response ^= challenge[i] & sram_cell[i];
     }
-    return output;
+    return response;
 }
 
 // 模拟通信接口
@@ -67,15 +73,16 @@ int main()
         // 模拟接收质询
         unsigned char challenge[CHALLENGE_LEN];
         printf("Receiving challenge: ");
+        printf("\n");
         for (int i = 0; i < CHALLENGE_LEN; i++)
         {
             challenge[i] = receive_data(client_socket); // 使用修改后的receive_data函数
-            printf("%02X ", challenge[i]);
+            // printf("%02X ", challenge[i]);
         }
         printf("\n");
 
-        // 模拟产生响应
-        unsigned char response = response_extractor(sram_puf_output, RESPONSE_LEN);
+        // 模拟产生响应，使用修改后的sram_puf_output函数
+        unsigned char response = sram_puf_output(challenge, CHALLENGE_LEN);
         printf("Generating response: %02X\n", response);
 
         // 模拟发送响应
@@ -89,15 +96,16 @@ int main()
         // 模拟接收质询
         unsigned char challenge[CHALLENGE_LEN];
         printf("Receiving challenge: ");
+        printf("\n");
         for (int i = 0; i < CHALLENGE_LEN; i++)
         {
             challenge[i] = receive_data(client_socket); // 使用修改后的receive_data函数
-            printf("%02X ", challenge[i]);
+            // printf("%02X ", challenge[i]);
         }
         printf("\n");
 
-        // 模拟产生响应
-        unsigned char response = response_extractor(sram_puf_output, RESPONSE_LEN);
+        // 模拟产生响应，使用修改后的sram_puf_output函数
+        unsigned char response = sram_puf_output(challenge, CHALLENGE_LEN);
         printf("Generating response: %02X\n", response);
 
         // 模拟发送响应

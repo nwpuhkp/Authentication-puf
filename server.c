@@ -15,6 +15,11 @@
 #define DELIMITER ","
 int server_socket; // 定义服务端套接字变量
 struct sockaddr_in server_address; // 定义服务端地址结构体变量
+// 将字符串转换为一个字节的数据
+unsigned char str_to_byte(char *str)
+{
+    return (unsigned char)strtol(str, NULL, 10);
+}
 // 查询设备是否存在于CSV文件中，如果存在，返回1，并将质询和响应数据复制到参数中；如果不存在，返回0
 int query_device(int device_id, unsigned char *challenge, unsigned char *response)
 {
@@ -30,9 +35,18 @@ int query_device(int device_id, unsigned char *challenge, unsigned char *respons
         int id; // 定义设备号变量
         unsigned char ch[CHALLENGE_LEN]; // 定义质询数组变量
         unsigned char res; // 定义响应变量
-        sscanf(line, "%d,%02X%02X%02X%02X%02X%02X%02X%02X,%02X", &id, &ch[0], &ch[1], &ch[2], &ch[3], &ch[4], &ch[5], &ch[6], &ch[7], &res); // 使用sscanf函数解析一行数据，按照逗号分隔符分割成三个字段
+        char *token; // 定义分割字符串的指针变量
+        token = strtok(line, DELIMITER); // 使用strtok函数按照逗号分隔符分割一行数据，并返回第一个字段的指针
+        sscanf(token, "%x", &id); // 使用sscanf函数将第一个字段转换为十六进制数，并赋值给设备号变量
         if (id == device_id) // 判断设备号是否匹配
         {
+            for (int i = 0; i < CHALLENGE_LEN; i++) // 循环读取质询数组的每个元素
+            {
+                token = strtok(NULL, DELIMITER); // 使用strtok函数继续分割字符串，并返回下一个字段的指针
+                ch[i] = str_to_byte(token); // 使用自定义的str_to_byte函数将下一个字段转换为一个字节的数据，并赋值给质询数组的对应元素
+            }
+            token = strtok(NULL, DELIMITER); // 使用strtok函数继续分割字符串，并返回最后一个字段的指针
+            res = str_to_byte(token); // 使用自定义的str_to_byte函数将最后一个字段转换为一个字节的数据，并赋值给响应变量
             memcpy(challenge, ch, CHALLENGE_LEN); // 复制质询数据到参数中
             *response = res; // 复制响应数据到参数中
             fclose(fp); // 关闭文件
@@ -51,7 +65,12 @@ int insert_device(int device_id, unsigned char *challenge, unsigned char respons
         printf("Error opening file!\n");
         return 0;
     }
-    fprintf(fp, "%d,%02X%02X%02X%02X%02X%02X%02X%02X,%02X\n", device_id, challenge[0], challenge[1], challenge[2], challenge[3], challenge[4], challenge[5], challenge[6], challenge[7], response); // 使用fprintf函数将一行数据写入到文件中，按照逗号分隔符分割成三个字段
+    fprintf(fp, "%x", device_id); // 使用fprintf函数将设备号写入到文件中，按照十六进制格式输出，并在后面添加一个逗号分隔符
+    for (int i = 0; i < CHALLENGE_LEN; i++) // 循环写入质询数组的每个元素
+    {
+        fprintf(fp, ",%02X", challenge[i]); // 使用fprintf函数将质询数组的对应元素写入到文件中，按照十六进制格式输出，并在前面添加一个逗号分隔符
+    }
+    fprintf(fp, ",%02X\n", response); // 使用fprintf函数将响应数据写入到文件中，按照十六进制格式输出，并在前面添加一个逗号分隔符，以及在后面添加一个换行符
     fclose(fp); // 关闭文件
     return 1; // 返回1表示成功
 }
@@ -83,6 +102,7 @@ void authenticate(int device_id, int client_socket) // 添加客户端套接字�
         printf("This device exsited!\n");
         // 发送质询给设备
         printf("Sending challenge: ");
+        printf("\n");
         for (int i = 0; i < CHALLENGE_LEN; i++)
         {
             send_data(challenge[i], client_socket); // 使用修改后的send_data函数
