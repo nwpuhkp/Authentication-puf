@@ -18,7 +18,7 @@ struct sockaddr_in server_address; // 定义服务端地址结构体变量
 // 将字符串转换为一个字节的数据
 unsigned char str_to_byte(char *str)
 {
-    return (unsigned char)strtol(str, NULL, 10);
+    return (unsigned char)strtol(str, NULL, 16);
 }
 // 查询设备是否存在于CSV文件中，如果存在，返回1，并将质询和响应数据复制到参数中；如果不存在，返回0
 int query_device(int device_id, unsigned char *challenge, unsigned char *response)
@@ -100,6 +100,8 @@ void authenticate(int device_id, int client_socket) // 添加客户端套接字�
     {
         // 设备存在，进行认证过程
         printf("This device exsited!\n");
+        // 发送注册请求给设备，假设使用0x00作为认证请求标志位
+        send_data(0x00, client_socket);
         // 发送质询给设备
         printf("Sending challenge: ");
         printf("\n");
